@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* PBS Attend desktop design tokens. Brand: Navy #101B31 · Blue #1677FF · Background #F5F7FB */
+@theme {
+  --font-sans: "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+
+  --color-navy: #101b31;
+  --color-navy-hover: #1a2846;
+  --color-navy-foreground: #e6ebf5;
+  --color-navy-muted: #8a96ad;
+  --color-primary: #1677ff;
+  --color-background: #f5f7fb;
+  --color-foreground: #101b31;
+  --color-muted-foreground: #5b6478;
+  --color-border: #e3e8f1;
+  --color-input: #d7deea;
+  --color-success: #12b76a;
+  --color-success-soft: #e7f8f0;
+  --color-warning: #f79009;
+  --color-warning-soft: #fef4e6;
+  --color-destructive: #d92d20;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased select-none;
+  }
+  input {
+    @apply select-text;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

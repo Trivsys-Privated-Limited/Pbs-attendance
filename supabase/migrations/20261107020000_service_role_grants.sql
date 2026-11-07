@@ -1,0 +1,86 @@
+-- PBS Attend — Phase 2 fix: explicit service_role table grants.
+--
+-- WHY THIS IS NEEDED
+-- ──────────────────
+-- All tables are owned by the `postgres` role. When the migrations issued
+-- explicit REVOKE statements (REVOKE ALL FROM anon; targeted REVOKEs from
+-- authenticated) the `postgres` default ACL row was written into each
+-- table's pg_class.relacl. That write replaced the NULL relacl that would
+-- otherwise cause PostgreSQL to fall back to the supabase_admin default ACL
+-- (which granted SELECT/INSERT/UPDATE/DELETE to all roles). Once relacl is
+-- non-NULL, every grantee must appear explicitly. service_role was never
+-- explicitly granted DML, so it ended up with only REFERENCES/TRIGGER/
+-- TRUNCATE/MAINTAIN — the structural privileges the postgres default ACL
+-- carries for non-owner roles. SELECT, INSERT, UPDATE and DELETE are absent.
+--
+-- SECURITY DEFINER FUNCTION ANALYSIS
+-- ────────────────────────────────────
+-- The four RLS helpers (current_profile_id, current_user_role,
+-- current_employee_id, has_permission) are owned by `postgres` and run as
+-- `postgres`. They do not run as `service_role`, so their execution does
+-- NOT confer table access to service_role callers. service_role needs its
+-- own table grants for every direct PostgREST query.
+--
+-- The three throttle procs (auth_throttle_status, auth_throttle_fail,
+-- auth_throttle_reset) are also owned by `postgres` and run as `postgres`.
+-- They access auth_login_throttle as `postgres`, which already owns the
+-- table. service_role callers can EXECUTE these functions but do NOT need
+-- any separate table grant on auth_login_throttle solely for the throttle
+-- procs. However, service_role is the caller of those procs via the
+-- PostgREST .rpc() path, and .rpc() requires EXECUTE on the function — which
+-- is already granted. No table grant on auth_login_throttle is needed for
+-- the throttle path.
+--
+-- MINIMUM GRANTS — CURRENT PHASE 2 REQUIREMENTS ONLY
+-- ────────────────────────────────────────────────────
+-- Derived from bootstrap-super-admin.mjs and adapters.ts only.
+-- No speculative future-phase grants are included.
+--
+-- profiles:
+--   SELECT  — bootstrap guard (count super_admins), getProfile, markSignedIn
+--   INSERT  — bootstrap insert, createEmployeeAccount (profile row)
+--   UPDATE  — markSignedIn (last_sign_in_at), createEmployeeAccount rollback
+--             (delete — see below)
+--   DELETE  — createEmployeeAccount compensating delete on profile insert
+--             failure; adapters.ts line: client.from("profiles").delete()
+--
+-- employees:
+--   SELECT  — findEmployeeByCode, findEmployeeByProfile
+--   INSERT  — createEmployeeAccount (employee row)
+--   UPDATE  — NOT needed in Phase 2 (no updateEmployee adapter exists yet)
+--   DELETE  — NOT needed in Phase 2; the rollback path at adapters.ts:197
+--             deletes from profiles, not employees
+--
+-- audit_logs:
+--   INSERT  — every AuditLogger.record() call
+--   SELECT  — granted separately when the server-side admin activity feed is enabled
+--
+-- auth_login_throttle:
+--   No direct table grants needed for Phase 2. The three SECURITY DEFINER
+--   procs run as `postgres` (owner) and access the table as `postgres`.
+--   service_role needs only EXECUTE on the functions, which is already granted.
+--
+-- permissions / role_permissions:
+--   No direct grants needed. has_permission() is SECURITY DEFINER (runs as
+--   `postgres`) and reads these tables as `postgres`. service_role callers
+--   invoke it via EXECUTE, already granted.
+--
+-- office_settings, devices, attendance_records, activity_transitions:
+--   No server-side adapters exist for these tables in Phase 2.
+--   Granting DML now would be speculative. Omitted. Add in the Phase 3
+--   migration that introduces the relevant server write paths.
+
+-- ── GRANTS ──────────────────────────────────────────────────────────────────
+
+-- profiles: SELECT + INSERT + UPDATE + DELETE
+-- (UPDATE covers last_sign_in_at; DELETE covers the compensating rollback)
+grant select, insert, update, delete on public.profiles  to service_role;
+
+-- employees: SELECT + INSERT only
+-- (no UPDATE or DELETE adapter exists in Phase 2;
+--  rollback path deletes from profiles, not employees)
+grant select, insert                 on public.employees to service_role;
+
+-- audit_logs: INSERT only
+-- (reads are authenticated-role only, through the audit_logs_select RLS policy)
+grant insert                         on public.audit_logs to service_role;

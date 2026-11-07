@@ -1,0 +1,33 @@
+# Windows packaging configuration (NSIS installer).
+# Prepared for a later phase: Phase 1 does not produce or sign an installer.
+appId: com.pbsdigitals.attend
+productName: PBS Attend
+copyright: Copyright © PBS Digitals
+directories:
+  output: release/${version}
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - "!**/*.map"
+asarUnpack:
+  - resources/**
+extraResources:
+  - from: resources
+    to: resources
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  executableName: PBSAttend
+  # A signing certificate must be configured before distribution (later phase).
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: PBS Attend
+  artifactName: PBS-Attend-Setup-${version}.${ext}
+  uninstallDisplayName: PBS Attend
+npmRebuild: false

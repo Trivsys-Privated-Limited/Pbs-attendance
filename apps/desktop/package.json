@@ -1,0 +1,40 @@
+{
+  "name": "@pbs-attend/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PBS Attend employee desktop application (Electron, Windows 10/11).",
+  "author": "PBS Digitals",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "package:win": "electron-vite build && electron-builder --win --config electron-builder.yml",
+    "test": "vitest run --dir src/main"
+  },
+  "devDependencies": {
+    "@pbs-attend/shared": "workspace:*",
+    "@pbs-attend/types": "workspace:*",
+    "@pbs-attend/validation": "workspace:*",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.5.0",
+    "lucide-react": "^1.70.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.5",
+    "typescript": "6.0.3",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
+}
